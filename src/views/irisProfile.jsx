@@ -27,32 +27,39 @@ import {
   Row,
   Col
 } from "reactstrap";
-import {api_key} from '../variables/key'
-import axios from 'axios'
+import {getSummonerInfo, getChampionImg, getMasteryById} from './api/summoner'
+import {getChampionData} from './api/champion'
 import moment from "moment";
 import "moment/locale/ko";
-import {getSummonerInfo, getChampionImg} from './api/summoner'
 
 class irisProfile extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      id: '',
       name: '',
-      accoundId: '',
+      accountId: '',
       profileIconId: '', //num
       summonerLevel: '',
       revisionDate: '',
       puuid: '',
-      champImg: ''
+      champImg: '',
+      mastery: '', //mastery array,
+      best3champ: [],
+      best3champName: [],
+      champData: {}
     };
   }
 
   componentDidMount() {
     getSummonerInfo('%C5%82Iris')
     .then(res=> {
-      const { name, accoundId, profileIconId, summonerLevel, revisionDate, puuid } = res.data
-      this.setState({ name, accoundId, profileIconId, summonerLevel, revisionDate, puuid })
-      console.log(this.state)
+      const { id, name, accountId, profileIconId, summonerLevel, revisionDate, puuid } = res.data
+      this.setState({ id, name, accountId, profileIconId, summonerLevel, revisionDate, puuid })
+      getMasteryById (id)
+      .then(res=> {
+        this.setState({mastery: res.data}, this.getBest3Champ)
+      })
     })
     .catch(err=>console.log(err))
 
@@ -65,10 +72,56 @@ class irisProfile extends React.Component {
         ),
       );
       this.setState({ champImg: "data:;base64," + base64 });
-    });
+    })
+    .catch(err=>console.log(err))
+
+    getChampionData()
+    .then(res=> this.setState({champData: res.data.data}))
+    .catch(err=>console.log(err))
   }
 
+// championId: 267
+// championLevel: 7
+// championPoints: 522368
+// championPointsSinceLastLevel: 500768
+// championPointsUntilNextLevel: 0
+// chestGranted: true
+// lastPlayTime: 1570591765000
+// summonerId: "ds_QfwdhDvwLBlSfi-XWzk3jozxw_3ylwDNVDpSPumDr0NQ"
+// tokensEarned: 0
+  getBest3Champ(){
+    let array = this.state.mastery 
+    let best3champ = []
+    for (let i=0; i<3; i++){
+      best3champ.push(array[i])
+    }
+    this.setState({ best3champ })
+    if(best3champ){
+      let champ =[]
+      best3champ.map( (obj)=>{
+        let result = this.findChampWithId(obj.championId)
+        champ.push(result)
+        this.setState({ best3champName : champ })
+      })}
+  }
+
+  findChampWithId(champId){
+    let champName
+    let champData = this.state.champData //nested obj
+    for( let value in champData){
+      let id = parseInt(champData[value].key)
+      if(id === champId){
+        champName = value
+      }
+    } 
+    return champName
+    // let champObj = champData.find( obj=>{
+    //   return obj.key === champId
+    // })
+    
+  }
   render() {
+    console.log('this.state', this.state)
     return (
       <>
         <div className="content">
@@ -96,6 +149,16 @@ class irisProfile extends React.Component {
                   <div className="card-description">
                    최근 접속 시간: {`${moment(this.state.revisionDate).fromNow()}`}
                   </div>
+                  <div className="card-description">
+                   TOP 3 champion:
+                  </div>
+                  {this.state.best3champName.map( champ => {
+                 return (
+                  <span className="card-description">
+                   {champ+' '}
+                  </span>
+                 )
+                })}
                 </CardBody>
                 <CardFooter>
                   <div className="button-container">

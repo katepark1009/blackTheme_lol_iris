@@ -25,6 +25,11 @@ export const getDetailGameList = gameId => {
   );
 };
 
+export const getMasteryById = summonerId => {
+  return axios.get(
+    `/lol/champion-mastery/v4/champion-masteries/by-summoner/${summonerId}?api_key=${api_key}`
+  );
+};
 
 export const getChampionImg = champName => { //first letter is Capital
   return axios.get(
